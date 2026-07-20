@@ -3,14 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>極限洗窗工 - 穩定廣告獲利版</title>
-    
-    <!-- Google AdSense 主程式 (請將 ca-pub-XXXXXXXXXXXXXXXX 替換為你的發布商 ID) -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
-
+    <title>極限洗窗工 - 超狂終極豪華版</title>
     <style>
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: none; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0c4a6e; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0c4a6e; font-family: sans-serif; }
         canvas { display: block; width: 100%; height: 100%; }
         #ui-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 12px 15px; display: flex; justify-content: space-between; pointer-events: none; z-index: 5; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
         .ui-text { color: #fff; font-size: 13px; font-weight: bold; text-shadow: 2px 2px 0 #000; margin-bottom: 2px; }
@@ -30,22 +26,6 @@
         
         #fever-bar-container { width: 120px; height: 10px; background: #334155; border-radius: 5px; margin-top: 4px; border: 1px solid #fff; overflow: hidden; }
         #fever-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #f43f5e, #eab308); transition: width 0.1s; }
-
-        /* 廣告容器樣式 */
-        .ad-container {
-            width: 100%;
-            max-width: 320px;
-            min-height: 50px;
-            margin: 10px 0;
-            background: rgba(255,255,255,0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            color: #94a3b8;
-            border: 1px dashed #475569;
-            pointer-events: auto;
-        }
     </style>
 </head>
 <body>
@@ -67,9 +47,8 @@
 
     <div id="item-toast">獲得提示！</div>
 
-    <!-- 開始畫面 -->
     <div id="start-overlay" class="overlay">
-        <h1>極限洗窗工：終極版</h1>
+        <h1>極限洗窗工：超狂終極版</h1>
         <p style="font-size:14px; line-height:1.5;">
             💥 雙擊畫面射出鋼索「蛛絲快跳」！<br>
             🔥 保持 Combo 觸發「狂歡無敵雷射大招」！<br>
@@ -79,27 +58,16 @@
         <button id="start-btn" class="btn">開始挑戰</button>
     </div>
 
-    <!-- 通關與商店畫面 -->
     <div id="complete-overlay" class="overlay hidden">
         <h2 id="complete-text" style="color: #4ade80; margin: 5px;">第 1 關完成！</h2>
         <div id="achievement-text" style="color: #fef08a; font-weight: bold; margin-bottom: 5px; font-size:14px;"></div>
         
-        <!-- 通關廣告位 -->
-        <div class="ad-container">
-            <ins class="adsbygoogle"
-                 style="display:inline-block;width:320px;height:50px"
-                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-                 data-ad-slot="YYYYYYYYYYYY"></ins>
-        </div>
-
-        <!-- 道具商店 -->
         <div class="shop-box">
             <div class="shop-title">🛠️ 裝備與道具升級</div>
             <div class="shop-item"><span>🧹 大號刮棒 (範圍+5)</span><button id="buy-squeegee" class="shop-btn">💰 120</button></div>
             <div class="shop-item"><span>🛡️ 磁性防護罩 (自動吸道具/擋飛鳥)</span><button id="buy-shield" class="shop-btn">💰 180</button></div>
         </div>
 
-        <!-- 角色造型商店 -->
         <div class="shop-box">
             <div class="shop-title">👕 傳奇火柴人換裝</div>
             <div class="shop-item"><span>🕸️ 蜘蛛人套裝 (鋼索冷卻減半)</span><button id="buy-skin1" class="shop-btn">💰 250</button></div>
@@ -109,45 +77,18 @@
         <button id="next-btn" class="btn">前往下一關</button>
     </div>
 
-    <!-- 遊戲結束畫面 -->
     <div id="over-overlay" class="overlay hidden">
         <h1 style="color: #f87171;">時間到！</h1>
         <h2 id="final-stats">你爬到了 0 樓</h2>
-
-        <!-- 結算廣告位 -->
-        <div class="ad-container">
-            <ins class="adsbygoogle"
-                 style="display:inline-block;width:320px;height:50px"
-                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-                 data-ad-slot="ZZZZZZZZZZZZ"></ins>
-        </div>
-
         <button id="restart-btn" class="btn">重新挑戰</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
 
     <script>
-        // --- 容錯保護機制：防止 AdSense 被攔截時讓遊戲崩潰 ---
-        function safePushAd() {
-            try {
-                (window.adsbygoogle = window.adsbygoogle || []).push({});
-            } catch (e) {
-                console.log("廣告載入被攔截，遊戲繼續正常運作。");
-            }
-        }
-
-        // --- Web Audio 音效引擎（含自動釋放） ---
+        // --- Web Audio API 音效引擎 ---
         let audioCtx = null, isAudioMuted = false, bgmTimer = null;
-        function initAudio() { 
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        }
-
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
         function playSound(type) {
             if (isAudioMuted || !audioCtx) return;
             try {
@@ -199,9 +140,9 @@
                 }
             }, 220);
         }
-        function stopBGM() { if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; } }
+        function stopBGM() { if (bgmTimer) clearInterval(bgmTimer); }
 
-        // --- 核心全域變數 ---
+        // --- 核心變數 ---
         const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
         const dirtCanvas = document.createElement('canvas'); const dirtCtx = dirtCanvas.getContext('2d');
         const fogCanvas = document.createElement('canvas'); const fogCtx = fogCanvas.getContext('2d');
@@ -213,23 +154,25 @@
 
         let gameState = 'start', score = 0, coins = 0, currentLevel = 1, timeLeft = 60, timerInterval = null;
         let stickman = { x: 0, y: 0, targetX: 0, targetY: 0 };
-        let isDrawing = false, windows = [], items = [], obstacles = [], particles = [];
+        let isDrawing = false, windows = [], items = [], obstacles = [], particles = [], events = [];
         let wallX, wallY, wallW, wallH;
         let totalDirtPixels = 0, cleanedProgress = 0;
         
+        // 特效與特殊機制
         let baseWipeRadius = 28, wipeRadius = 28;
-        let hasShield = false, equippedSkin = 'default', ownedSkins = ['default'];
+        let hasShield = false, equippedSkin = 'default'; 
+        let ownedSkins = ['default'];
         let comboCount = 0, comboTimer = null, hitCountThisLevel = 0;
         let windOffset = 0, windTime = 0, shakeTime = 0;
         let isFever = false, feverProgress = 0, feverTimeLeft = 0;
-        let lastTapTime = 0, animationFrameId = null;
+        let lastTapTime = 0; // 用於判定雙擊
 
         audioBtn.addEventListener('click', () => {
             isAudioMuted = !isAudioMuted;
             audioBtn.textContent = isAudioMuted ? "🔇 音效：關" : "🔊 音效：開";
         });
 
-        // 商店購買事件 Binding
+        // 商店購買綁定
         document.getElementById('buy-squeegee').addEventListener('click', () => { if(coins>=120){ coins-=120; baseWipeRadius+=5; updateUI(); showToast("🧹 刮棒永久增大！"); } });
         document.getElementById('buy-shield').addEventListener('click', () => { if(coins>=180 && !hasShield){ coins-=180; hasShield=true; updateUI(); showToast("🛡️ 磁性防護罩已裝備！"); } });
         document.getElementById('buy-skin1').addEventListener('click', () => { if(coins>=250 && !ownedSkins.includes('spider')){ coins-=250; ownedSkins.push('spider'); equippedSkin='spider'; updateUI(); showToast("🕸️ 解鎖並穿上蜘蛛人套裝！"); } });
@@ -247,7 +190,6 @@
             document.getElementById('buy-skin2').disabled = coins < 400 || ownedSkins.includes('ironman');
         }
 
-        // 計時器防重疊機制
         function runTimer() {
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
@@ -255,15 +197,15 @@
                     timeLeft--;
                     document.getElementById('time-box').textContent = `TIME: ${timeLeft}`;
                     
-                    if (currentLevel >= 3 && Math.random() < 0.4 && obstacles.length < 5) {
-                        obstacles.push({ x: -30, y: wallY + Math.random() * wallH, speed: 4 + Math.random() * 3 });
+                    // 隨機產生飛鳥
+                    if (currentLevel >= 3 && Math.random() < 0.4) {
+                        obstacles.push({ x: -30, y: wallY + Math.random() * wallH, speed: 4 + Math.random() * 3, type: 'bird' });
                     }
 
                     if (timeLeft <= 0) { 
-                        gameState = 'gameover'; clearInterval(timerInterval); timerInterval = null; stopBGM();
+                        gameState = 'gameover'; clearInterval(timerInterval); stopBGM();
                         document.getElementById('final-stats').textContent = `你爬到了 ${currentLevel} 樓`;
                         overOverlay.classList.remove('hidden'); 
-                        safePushAd();
                     }
                 }
             }, 1000);
@@ -279,7 +221,7 @@
         }
 
         function initWindows() {
-            windows = []; items = []; obstacles = []; particles = []; hitCountThisLevel = 0;
+            windows = []; items = []; obstacles = []; events = []; hitCountThisLevel = 0;
             const rows = Math.min(3 + Math.floor((currentLevel - 1) / 2), 6); const cols = 3;
             const winW = (wallW - 30) / cols; const winH = (wallH - 40) / rows;
             dirtCtx.clearRect(0, 0, dirtCanvas.width, dirtCanvas.height);
@@ -295,6 +237,7 @@
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     let wx = wallX + 15 + c * (winW + 5), wy = wallY + 15 + r * (winH + 8);
+                    // 高樓層機率出現破裂玻璃
                     let isCracked = currentLevel >= 4 && Math.random() < 0.15;
                     let isLocked = !isCracked && Math.random() < lockChance;
                     
@@ -302,6 +245,7 @@
                     
                     if (!isLocked) {
                         dirtCtx.fillStyle = '#1e3a8a'; dirtCtx.fillRect(wx, wy, winW, winH);
+                        // 紅色頑固塗鴉
                         if (currentLevel >= 2 && Math.random() < 0.35) {
                             dirtCtx.fillStyle = '#b91c1c'; dirtCtx.fillRect(wx + 8, wy + 8, winW - 16, winH - 16);
                         }
@@ -310,6 +254,7 @@
                 }
             }
 
+            // 隨機放道具
             if (windows.length > 0) {
                 let w = windows.filter(win => !win.locked)[0];
                 if (w) items.push({ x: w.x + w.w/2, y: w.y + w.h/2, type: Math.random()<0.5?'bucket':'squeegee' });
@@ -320,8 +265,6 @@
         function showToast(text) { itemToast.textContent = text; itemToast.style.opacity = 1; setTimeout(() => { itemToast.style.opacity = 0; }, 2000); }
 
         function createParticles(x, y, color, count=8) {
-            // 粒子數量上限保護，防止記憶體暴漲
-            if (particles.length > 100) return;
             for(let i=0; i<count; i++) {
                 particles.push({ x: x, y: y, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, alpha: 1, color: color, size: 2+Math.random()*4 });
             }
@@ -334,16 +277,16 @@
                 if (!win.locked) {
                     const imgData = dirtCtx.getImageData(win.x, win.y, win.w, win.h);
                     const data = imgData.data;
-                    for (let i = 3; i < data.length; i += 32) { if (data[i] > 10) currentDirtCount++; }
+                    for (let i = 3; i < data.length; i += 24) { if (data[i] > 10) currentDirtCount++; }
                 }
             });
-            let percent = Math.floor(((totalDirtPixels/8 - currentDirtCount) / (totalDirtPixels/8)) * 100);
+            let percent = Math.floor(((totalDirtPixels/6 - currentDirtCount) / (totalDirtPixels/6)) * 100);
             cleanedProgress = Math.max(0, Math.min(100, percent));
             document.getElementById('clean-box').textContent = `CLEAN: ${cleanedProgress}%`;
         }
 
         function triggerFever() {
-            isFever = true; feverTimeLeft = 180;
+            isFever = true; feverTimeLeft = 180; // 3秒 (60fps * 3)
             playSound('fever'); showToast("🔥 狂歡時刻！雷射全螢幕蒸發！");
         }
 
@@ -352,6 +295,7 @@
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             
+            // 判定雙擊（蛛絲快跳）
             let nowTime = Date.now();
             if (nowTime - lastTapTime < 250 && gameState === 'playing') {
                 let jumpDist = Math.hypot(clientX - stickman.x, clientY - stickman.y);
@@ -359,7 +303,7 @@
                     stickman.x = stickman.targetX = clientX;
                     stickman.y = stickman.targetY = clientY;
                     playSound('item'); showToast("🕸️ 蛛絲快跳！");
-                    createParticles(clientX, clientY, '#38bdf8', 12);
+                    createParticles(clientX, clientY, '#38bdf8', 15);
                 }
             }
             lastTapTime = nowTime;
@@ -372,6 +316,7 @@
             if (comboTimer) clearTimeout(comboTimer);
             comboTimer = setTimeout(() => { comboCount = 0; updateUI(); }, 1200);
 
+            // 磁鐵自動吸道具
             if (equippedSkin === 'ironman' || hasShield) {
                 items.forEach(it => {
                     if (Math.hypot(wipeX - it.x, wipeY - it.y) < 150) {
@@ -380,6 +325,7 @@
                 });
             }
 
+            // 觸碰道具
             items.forEach((it, index) => {
                 if (Math.hypot(wipeX - it.x, wipeY - it.y) < 40) {
                     playSound('item');
@@ -394,6 +340,7 @@
                 }
             });
 
+            // 撞擊飛鳥
             obstacles.forEach((obs, index) => {
                 if (Math.hypot(wipeX - obs.x, wipeY - obs.y) < 30) {
                     if (hasShield || equippedSkin === 'ironman') {
@@ -406,16 +353,21 @@
                 }
             });
 
+            // 窗戶與特殊陷阱事件判定
             windows.forEach(win => {
                 if (wipeX > win.x && wipeX < win.x + win.w && wipeY > win.y && wipeY < win.y + win.h) {
+                    // 碰百葉窗
                     if (win.locked && !isFever) {
                         playSound('hit'); comboCount = 0; score = Math.max(0, score - 1); hitCountThisLevel++; updateUI();
                     }
+                    // 碰破裂玻璃（大扣分震動陷阱）
                     if (win.cracked && !isFever) {
                         playSound('break'); win.cracked = false; win.locked = true;
                         timeLeft = Math.max(1, timeLeft - 5); shakeTime = 25;
                         showToast("🪟 玻璃碎裂！時間大扣 5 秒！");
                     }
+
+                    // 觸發隨機貓咪 / 住戶互動
                     if (!win.locked && !win.cracked && win.eventState === 'none' && Math.random() < 0.01) {
                         win.eventState = Math.random() < 0.6 ? 'cat' : 'angry';
                         setTimeout(() => {
@@ -430,6 +382,7 @@
                 }
             });
 
+            // 大招雷射蒸發或普通消除
             dirtCtx.save(); dirtCtx.globalCompositeOperation = 'destination-out';
             fogCtx.save(); fogCtx.globalCompositeOperation = 'destination-out';
             if (isFever) {
@@ -438,11 +391,12 @@
                 createParticles(wipeX, wipeY, '#f43f5e', 2);
             } else {
                 dirtCtx.beginPath(); dirtCtx.arc(wipeX, wipeY, wipeRadius, 0, Math.PI * 2); dirtCtx.fill();
-                fogCtx.beginPath(); dirtCtx.arc(wipeX, wipeY, wipeRadius + 15, 0, Math.PI * 2); fogCtx.fill();
+                fogCtx.beginPath(); fogCtx.arc(wipeX, wipeY, wipeRadius + 15, 0, Math.PI * 2); fogCtx.fill();
                 if (Math.random() < 0.4) createParticles(wipeX, wipeY, '#38bdf8', 1);
             }
             dirtCtx.restore(); fogCtx.restore();
 
+            // 累積大招與 Combo
             if (!isFever) {
                 comboCount++;
                 if (comboCount % 15 === 0) playSound('wipe');
@@ -456,7 +410,7 @@
         function checkLevelCompletion() {
             if (gameState !== 'playing') return;
             if (cleanedProgress >= 96) {
-                gameState = 'complete'; clearInterval(timerInterval); timerInterval = null; stopBGM(); playSound('win');
+                gameState = 'complete'; clearInterval(timerInterval); stopBGM(); playSound('win');
                 let bonus = 40 + timeLeft * 2; coins += bonus; score += (600 + timeLeft * 10);
                 let ach = "🎖️ 順利抵達此樓層！";
                 if (hitCountThisLevel === 0) ach = "🌟 零失誤完美傳奇！(洗窗大師稱號)";
@@ -465,10 +419,10 @@
                 document.getElementById('complete-text').textContent = `第 ${currentLevel} 樓完成！ 💰 +${bonus}`;
                 document.getElementById('achievement-text').textContent = ach;
                 
-                for(let i=0; i<40; i++) particles.push({ x: canvas.width/2, y: canvas.height/2, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.7)*12, alpha: 1, color: `hsl(${Math.random()*360}, 100%, 60%)`, size: 4+Math.random()*4 });
+                // 通關漫天粒子
+                for(let i=0; i<60; i++) particles.push({ x: canvas.width/2, y: canvas.height/2, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.7)*12, alpha: 1, color: `hsl(${Math.random()*360}, 100%, 60%)`, size: 4+Math.random()*4 });
                 
                 updateUI(); completeOverlay.classList.remove('hidden');
-                safePushAd();
             }
         }
 
@@ -476,8 +430,8 @@
         canvas.addEventListener('pointermove', (e) => { if (isDrawing) updateTouch(e); });
         canvas.addEventListener('pointerup', () => { isDrawing = false; checkLevelCompletion(); });
 
-        // 主遊戲繪製循環 (優化記憶體清理)
         function draw() {
+            // 畫面震動模擬
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
             if (shakeTime > 0) {
@@ -485,23 +439,29 @@
                 ctx.translate(dx, dy); shakeTime--;
             }
 
+            // 天色
             let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
             if (currentLevel <= 2) { grad.addColorStop(0, '#38bdf8'); grad.addColorStop(1, '#bae6fd'); }
             else if (currentLevel <= 5) { grad.addColorStop(0, '#f97316'); grad.addColorStop(1, '#fef08a'); }
             else { grad.addColorStop(0, '#0f172a'); grad.addColorStop(1, '#3b0764'); }
             ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // 環境陣風
             if (currentLevel >= 3) { windTime += 0.04; windOffset = Math.sin(windTime) * (currentLevel * 1.8); ctx.translate(windOffset, 0); }
 
+            // 大樓牆面
             ctx.fillStyle = '#b45309'; ctx.fillRect(wallX, wallY, wallW, wallH);
 
+            // 繪製窗戶與事件特寫
             windows.forEach(win => {
                 ctx.fillStyle = win.locked ? '#ef4444' : '#fef08a';
                 if (win.cracked) ctx.fillStyle = '#cbd5e1';
                 ctx.fillRect(win.x, win.y, win.w, win.h);
+
+                // 畫窗戶邊框
                 ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.strokeRect(win.x, win.y, win.w, win.h);
                 
-                if (win.cracked) {
+                if (win.cracked) { // 裂痕線條
                     ctx.strokeStyle = '#71717a'; ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.moveTo(win.x+10, win.y+10); ctx.lineTo(win.x+win.w-15, win.y+win.h-10);
                     ctx.moveTo(win.x+win.w/2, win.y+5); ctx.lineTo(win.x+10, win.y+win.h-10); ctx.stroke();
@@ -514,15 +474,11 @@
             ctx.drawImage(dirtCanvas, 0, 0);
             ctx.drawImage(fogCanvas, 0, 0);
 
+            // 繪製道具與飛鳥
             items.forEach(it => { ctx.font = "24px Arial"; ctx.fillText(it.type === 'bucket' ? "🪣" : "🧹", it.x - 12, it.y + 8); });
-            
-            // 飛鳥越界清理
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].x += obstacles[i].speed;
-                ctx.font = "24px Arial"; ctx.fillText("🦅", obstacles[i].x, obstacles[i].y);
-                if (obstacles[i].x > canvas.width + 50) obstacles.splice(i, 1);
-            }
+            obstacles.forEach(obs => { obs.x += obs.speed; ctx.font = "24px Arial"; ctx.fillText("🦅", obs.x, obs.y); });
 
+            // 狂歡大招特效
             if (isFever) {
                 feverTimeLeft--;
                 ctx.strokeStyle = 'rgba(244, 63, 94, 0.4)'; ctx.lineWidth = 40;
@@ -530,18 +486,18 @@
                 if (feverTimeLeft <= 0) { isFever = false; feverProgress = 0; updateUI(); }
             }
 
-            // 粒子淡出銷毀
-            for (let idx = particles.length - 1; idx >= 0; idx--) {
-                let p = particles[idx];
+            // 粒子更新
+            particles.forEach((p, idx) => {
                 p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
                 ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, p.alpha);
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                ctx.globalAlpha = 1; 
-                if (p.alpha <= 0) particles.splice(idx, 1);
-            }
+                ctx.globalAlpha = 1; if(p.alpha <= 0) particles.splice(idx, 1);
+            });
 
+            // 火柴人渲染
             stickman.x += (stickman.targetX - stickman.x) * 0.22; stickman.y += (stickman.targetY - stickman.y) * 0.22;
             
+            // 根據造型換色
             let ropeColor = '#1e293b', bodyColor = '#ffffff';
             if (equippedSkin === 'spider') { ropeColor = '#ef4444'; bodyColor = '#3b82f6'; }
             if (equippedSkin === 'ironman') { ropeColor = '#eab308'; bodyColor = '#dc2626'; }
@@ -555,11 +511,11 @@
             ctx.strokeStyle = bodyColor; ctx.fillStyle = bodyColor; ctx.lineWidth = 4;
             ctx.beginPath(); ctx.arc(stickman.x, stickman.y-48, 7, 0, Math.PI*2); ctx.fill(); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(stickman.x, stickman.y-41); ctx.lineTo(stickman.x, stickman.y-20); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(stickman.x, stickman.y-35); ctx.lineTo(stickman.x-15, stickman.y-25); ctx.lineTo(stickman.x+15, stickman.y-25); stroke();
+            ctx.beginPath(); ctx.moveTo(stickman.x, stickman.y-35); ctx.lineTo(stickman.x-15, stickman.y-25); ctx.lineTo(stickman.x+15, stickman.y-25); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(stickman.x, stickman.y-20); ctx.lineTo(stickman.x-10, stickman.y); ctx.moveTo(stickman.x, stickman.y-20); ctx.lineTo(stickman.x+10, stickman.y); ctx.stroke();
 
             ctx.restore();
-            animationFrameId = requestAnimationFrame(draw);
+            requestAnimationFrame(draw);
         }
 
         function startGame() {
@@ -578,9 +534,8 @@
 
         window.addEventListener('resize', resize); resize();
         startBtn.addEventListener('click', startGame); nextBtn.addEventListener('click', nextLevel); restartBtn.addEventListener('click', startGame);
-        
-        // 啟動主渲染循環
         draw();
     </script>
 </body>
 </html>
+
