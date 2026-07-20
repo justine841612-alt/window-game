@@ -3,22 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>極限洗窗工 - 終極大滿貫版</title>
+    <title>極限洗窗工 - 動態高樓版</title>
     <style>
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: none; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0c4a6e; font-family: sans-serif; }
         canvas { display: block; width: 100%; height: 100%; }
         #ui-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 12px 15px; display: flex; justify-content: space-between; pointer-events: none; z-index: 5; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); }
         .ui-text { color: #fff; font-size: 14px; font-weight: bold; text-shadow: 2px 2px 0 #000; }
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center; padding: 20px; z-index: 10; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center; padding: 20px; z-index: 10; overflow-y: auto; }
         .overlay.hidden { display: none; }
         .btn { background: #eab308; color: #0f172a; border: 3px solid #0f172a; padding: 10px 25px; font-size: 18px; font-weight: bold; border-radius: 12px; box-shadow: 3px 3px 0px #0f172a; cursor: pointer; pointer-events: auto; margin-top: 15px; }
         .btn:disabled { background: #64748b; cursor: not-allowed; }
         
         #audio-btn { background: rgba(15, 23, 42, 0.8); color: #fff; border: 2px solid #38bdf8; padding: 4px 8px; border-radius: 18px; font-size: 12px; font-weight: bold; cursor: pointer; pointer-events: auto; margin-top: 4px; }
-        #item-toast { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(234, 179, 8, 0.95); color: #0f172a; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 8; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         
-        /* 商店樣式 */
+        #item-toast { 
+            position: absolute; 
+            top: 80px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            background: rgba(234, 179, 8, 0.95); 
+            color: #0f172a; 
+            padding: 10px 20px; 
+            border-radius: 20px; 
+            font-weight: bold; 
+            font-size: 15px; 
+            pointer-events: none; 
+            opacity: 0; 
+            transition: opacity 0.4s ease, transform 0.4s ease; 
+            z-index: 8; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
+            border: 2px solid #ffffff;
+        }
+        #item-toast.show { opacity: 1; transform: translateX(-50%) translateY(5px); }
+
+        .summary-box { background: rgba(15, 23, 42, 0.85); border: 2px solid #38bdf8; border-radius: 12px; padding: 12px 18px; margin: 8px 0; width: 90%; max-width: 350px; text-align: left; }
+        .summary-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
+        .summary-total { border-top: 1px dashed #38bdf8; padding-top: 6px; margin-top: 6px; font-weight: bold; color: #fef08a; font-size: 15px; }
+        
         .shop-box { background: rgba(30, 41, 59, 0.9); border: 2px solid #eab308; border-radius: 12px; padding: 15px; margin: 10px 0; width: 90%; max-width: 350px; text-align: left; }
         .shop-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
         .shop-btn { background: #38bdf8; border: none; padding: 6px 12px; font-weight: bold; border-radius: 6px; cursor: pointer; color: #0f172a; }
@@ -45,8 +67,8 @@
 
     <!-- 開始畫面 -->
     <div id="start-overlay" class="overlay">
-        <h1>極限洗窗工：終極版</h1>
-        <p>⚡ 風暴、濃霧、蜜蜂與飛鳥來襲！<br>💰 賺取金幣升級裝備！<br>🔥 保持連續擦拭開啟 Combo 加分！</p>
+        <h1>極限洗窗工：動態高樓版</h1>
+        <p>💩 鳥屎、飛鳥、蜜蜂襲擊！<br>💰 累積連擊與通關賺取金幣升級裝備！<br>🚨 <b>第 40 關起：窗戶將會開始移動！</b></p>
         <button id="start-btn" class="btn">開始挑戰</button>
     </div>
 
@@ -55,6 +77,14 @@
         <h2 id="complete-text" style="color: #4ade80; margin: 5px;">第 1 關完成！</h2>
         <div id="achievement-text" style="color: #fef08a; font-weight: bold; margin-bottom: 5px;"></div>
         
+        <div class="summary-box">
+            <div style="text-align: center; font-weight: bold; color: #38bdf8; margin-bottom: 8px;">📊 本關收益結算</div>
+            <div class="summary-row"><span>通關基礎獎勵：</span><span id="sum-base">💰 50</span></div>
+            <div class="summary-row"><span>剩餘時間加成：</span><span id="sum-time">💰 0</span></div>
+            <div class="summary-row summary-total"><span>本關獲得總計：</span><span id="sum-gained">💰 0</span></div>
+            <div class="summary-row summary-total" style="color:#4ade80; border-top:none;"><span>目前持有總金幣：</span><span id="sum-total">💰 0</span></div>
+        </div>
+
         <div class="shop-box">
             <div style="text-align: center; font-weight: bold; color: #eab308; margin-bottom: 10px;">🛠️ 裝備升級商店</div>
             <div class="shop-item">
@@ -84,7 +114,6 @@
     <canvas id="gameCanvas"></canvas>
 
     <script>
-        // --- Web Audio API 純程式碼音樂引擎 ---
         let audioCtx = null, isAudioMuted = false, bgmTimer = null;
 
         function initAudio() {
@@ -112,11 +141,16 @@
                     osc.frequency.setValueAtTime(659.25, now + 0.08);
                     gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
                     osc.start(now); osc.stop(now + 0.2);
-                } else if (type === 'combo') {
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
-                    osc.frequency.exponentialRampToValueAtTime(1600, now + 0.1);
-                    gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
-                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'shine') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(1046.5, now);
+                    osc.frequency.setValueAtTime(1318.5, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now); osc.stop(now + 0.2);
+                } else if (type === 'poop') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.linearRampToValueAtTime(80, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now); osc.stop(now + 0.2);
                 } else if (type === 'win') {
                     [440, 554.37, 659.25, 880].forEach((freq, idx) => {
                         const o = audioCtx.createOscillator(), g = audioCtx.createGain();
@@ -151,7 +185,6 @@
         }
         function stopBGM() { if (bgmTimer) clearInterval(bgmTimer); }
 
-        // --- 核心變數 ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const dirtCanvas = document.createElement('canvas');
@@ -170,11 +203,11 @@
 
         let gameState = 'start', score = 0, coins = 0, currentLevel = 1, timeLeft = 60, timerInterval = null;
         let stickman = { x: 0, y: 0, targetX: 0, targetY: 0 };
-        let isDrawing = false, windows = [], items = [], obstacles = [], beehives = [];
+        let isDrawing = false, windows = [], items = [], obstacles = [], beehives = [], poops = [], sparkles = [];
         let wallX, wallY, wallW, wallH;
         let totalDirtPixels = 0, cleanedProgress = 0;
+        let toastTimer = null;
         
-        // 商店與裝備屬性
         let baseWipeRadius = 28, wipeRadius = 28;
         let hasShield = false, hasMagnet = false;
         let comboCount = 0, comboTimer = null, hitCountThisLevel = 0;
@@ -185,7 +218,6 @@
             audioBtn.textContent = isAudioMuted ? "🔇 音效：關" : "🔊 音效：開";
         });
 
-        // --- 商店按鈕事件 ---
         document.getElementById('buy-squeegee').addEventListener('click', () => {
             if (coins >= 150) {
                 coins -= 150; baseWipeRadius += 5; updateUI();
@@ -213,14 +245,13 @@
             document.getElementById('coin-box').textContent = `💰 ${coins}`;
             document.getElementById('combo-box').textContent = `COMBO: x${comboCount}`;
             
-            // 商店按鈕狀態更新
             document.getElementById('buy-squeegee').disabled = coins < 150;
             document.getElementById('buy-shield').disabled = coins < 200 || hasShield;
             document.getElementById('buy-magnet').disabled = coins < 250 || hasMagnet;
         }
 
         function getLevelTimeLimit() {
-            return Math.max(35, 65 - currentLevel * 3);
+            return Math.max(30, 65 - currentLevel * 2);
         }
 
         function runTimer() {
@@ -230,8 +261,13 @@
                     timeLeft--; 
                     document.getElementById('time-box').textContent = `TIME: ${timeLeft}`;
                     
-                    if (currentLevel >= 4 && Math.random() < 0.4) {
-                        obstacles.push({ x: -30, y: wallY + Math.random() * wallH, speed: 3 + Math.random() * 3 });
+                    if (currentLevel >= 2 && Math.random() < 0.45) {
+                        obstacles.push({ 
+                            x: -30, 
+                            y: wallY + Math.random() * (wallH - 50), 
+                            speed: 3 + Math.random() * 3,
+                            hasPooped: false
+                        });
                     }
 
                     if (timeLeft <= 0) { 
@@ -257,7 +293,7 @@
         }
 
         function initWindows() {
-            windows = []; items = []; obstacles = []; beehives = []; hitCountThisLevel = 0;
+            windows = []; items = []; obstacles = []; beehives = []; poops = []; sparkles = []; hitCountThisLevel = 0;
             const rows = Math.min(3 + Math.floor((currentLevel - 1) / 2), 6); 
             const cols = 3;
             const winW = (wallW - 30) / cols;
@@ -269,7 +305,6 @@
 
             const lockChance = Math.min(0.15 + (currentLevel * 0.04), 0.45);
 
-            // 濃霧氣候條件
             if (currentLevel >= 3 && Math.random() < 0.5) {
                 fogCtx.fillStyle = 'rgba(226, 232, 240, 0.85)';
                 fogCtx.fillRect(wallX, wallY, wallW, wallH);
@@ -280,18 +315,24 @@
                     let wx = wallX + 15 + c * (winW + 5), wy = wallY + 15 + r * (winH + 8);
                     let isLocked = Math.random() < lockChance;
                     
-                    windows.push({ x: wx, y: wy, w: winW, h: winH, locked: isLocked });
+                    let isMoving = currentLevel >= 40 && Math.random() < 0.6;
+                    let moveSpeed = isMoving ? (1 + (currentLevel - 40) * 0.1) * (Math.random() < 0.5 ? 1 : -1) : 0;
+
+                    windows.push({ 
+                        x: wx, y: wy, origX: wx, w: winW, h: winH, 
+                        locked: isLocked, cleaned: false,
+                        isMoving: isMoving, speed: moveSpeed, range: 25
+                    });
                     
                     if (!isLocked) {
                         dirtCtx.fillStyle = '#1e3a8a'; 
                         dirtCtx.fillRect(wx, wy, winW, winH);
                         
                         if (currentLevel >= 2 && Math.random() < Math.min(0.2 + currentLevel * 0.08, 0.6)) {
-                            dirtCtx.fillStyle = '#b91c1c';
+                            dirtCtx.fillStyle = '#78350f';
                             dirtCtx.fillRect(wx + 8, wy + 8, winW - 16, winH - 16);
                         }
 
-                        // 產生蜂窩
                         if (currentLevel >= 4 && Math.random() < 0.15) {
                             beehives.push({ x: wx + winW - 15, y: wy + 15 });
                         }
@@ -312,13 +353,32 @@
                 }
             }
 
+            if (currentLevel === 40) {
+                showToast("🚨 警報！第 40 關解鎖：窗戶開始移動！");
+            }
+
             wipeRadius = baseWipeRadius;
             calculateProgress();
         }
 
         function showToast(text) {
-            itemToast.textContent = text; itemToast.style.opacity = 1;
-            setTimeout(() => { itemToast.style.opacity = 0; }, 2000);
+            itemToast.textContent = text; 
+            itemToast.classList.add('show');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { itemToast.classList.remove('show'); }, 3500);
+        }
+
+        function triggerWindowShine(win) {
+            playSound('shine');
+            for (let i = 0; i < 8; i++) {
+                sparkles.push({
+                    x: win.x + Math.random() * win.w,
+                    y: win.y + Math.random() * win.h,
+                    size: 8 + Math.random() * 12,
+                    alpha: 1,
+                    life: 0.03 + Math.random() * 0.03
+                });
+            }
         }
 
         function calculateProgress() {
@@ -326,11 +386,18 @@
             let currentDirtCount = 0;
             windows.forEach(win => {
                 if (!win.locked) {
-                    const imgData = dirtCtx.getImageData(win.x, win.y, win.w, win.h);
+                    const imgData = dirtCtx.getImageData(win.origX, win.y, win.w, win.h);
                     const data = imgData.data;
+                    let winDirt = 0;
                     for (let i = 3; i < data.length; i += 16) {
-                        if (data[i] > 10) currentDirtCount++;
+                        if (data[i] > 10) winDirt++;
                     }
+                    
+                    if (winDirt === 0 && !win.cleaned) {
+                        win.cleaned = true;
+                        triggerWindowShine(win);
+                    }
+                    currentDirtCount += winDirt;
                 }
             });
 
@@ -351,11 +418,9 @@
             
             const wipeX = stickman.x + 15, wipeY = stickman.y - 35; 
 
-            // Combo 邏輯
             if (comboTimer) clearTimeout(comboTimer);
             comboTimer = setTimeout(() => { comboCount = 0; updateUI(); }, 1200);
 
-            // 磁鐵功能
             if (hasMagnet) {
                 items.forEach(it => {
                     const dist = Math.hypot(wipeX - it.x, wipeY - it.y);
@@ -366,12 +431,18 @@
                 });
             }
 
-            // 道具觸碰
+            poops.forEach((p, idx) => {
+                if (Math.hypot(wipeX - p.x, wipeY - p.y) < wipeRadius + 15) {
+                    poops.splice(idx, 1);
+                    playSound('wipe');
+                }
+            });
+
             items.forEach((it, index) => {
                 if (Math.hypot(wipeX - it.x, wipeY - it.y) < 35) {
                     playSound('item');
                     if (it.type === 'bucket') {
-                        windows.forEach(w => { if (!w.locked) dirtCtx.clearRect(w.x, w.y, w.w, w.h); });
+                        windows.forEach(w => { if (!w.locked) dirtCtx.clearRect(w.origX, w.y, w.w, w.h); });
                         showToast("🪣 水桶爆發！污垢全清！");
                     } else {
                         wipeRadius = baseWipeRadius + 22;
@@ -382,7 +453,6 @@
                 }
             });
 
-            // 蜂窩碰觸
             beehives.forEach((hive, idx) => {
                 if (Math.hypot(wipeX - hive.x, wipeY - hive.y) < 20) {
                     playSound('hit');
@@ -391,7 +461,6 @@
                 }
             });
 
-            // 飛鳥干擾物撞擊
             obstacles.forEach((obs, index) => {
                 if (Math.hypot(wipeX - obs.x, wipeY - obs.y) < 25) {
                     if (hasShield) {
@@ -409,7 +478,6 @@
                 }
             });
 
-            // 百葉窗誤觸
             windows.forEach(win => {
                 if (win.locked && wipeX > win.x && wipeX < win.x + win.w && wipeY > win.y && wipeY < win.y + win.h) {
                     playSound('hit');
@@ -420,14 +488,12 @@
                 }
             });
 
-            // 清除污垢與散霧
             dirtCtx.save(); dirtCtx.globalCompositeOperation = 'destination-out'; 
             dirtCtx.beginPath(); dirtCtx.arc(wipeX, wipeY, wipeRadius, 0, Math.PI * 2); dirtCtx.fill(); dirtCtx.restore();
 
             fogCtx.save(); fogCtx.globalCompositeOperation = 'destination-out'; 
             fogCtx.beginPath(); fogCtx.arc(wipeX, wipeY, wipeRadius + 10, 0, Math.PI * 2); fogCtx.fill(); fogCtx.restore();
 
-            // 增加 Combo 與分數
             comboCount++;
             if (comboCount % 10 === 0) playSound('combo');
             score += (1 + Math.floor(comboCount / 10));
@@ -445,16 +511,23 @@
                 stopBGM();
                 playSound('win');
                 
-                const earnedCoins = 50 + timeLeft * 2;
+                const baseReward = 50 + (currentLevel >= 40 ? 30 : 0);
+                const timeBonus = timeLeft * 2;
+                const earnedCoins = baseReward + timeBonus;
+
                 coins += earnedCoins;
                 score += (500 + timeLeft * 10);
 
-                // 成就評定
+                document.getElementById('sum-base').textContent = `💰 ${baseReward}`;
+                document.getElementById('sum-time').textContent = `💰 ${timeBonus}`;
+                document.getElementById('sum-gained').textContent = `💰 ${earnedCoins}`;
+                document.getElementById('sum-total').textContent = `💰 ${coins}`;
+
                 let achievement = "🎖️ 順利通關！";
                 if (hitCountThisLevel === 0) achievement = "🌟 完美零失誤！(洗窗大師)";
                 else if (timeLeft >= 25) achievement = "⚡ 極速清潔工！";
 
-                document.getElementById('complete-text').textContent = `第 ${currentLevel} 關完成！ (+${earnedCoins}金幣)`;
+                document.getElementById('complete-text').textContent = `第 ${currentLevel} 關完成！`;
                 document.getElementById('achievement-text').textContent = achievement;
                 
                 updateUI();
@@ -488,7 +561,6 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawSky();
 
-            // 風暴搖晃計算
             if (currentLevel >= 3) {
                 windTime += 0.05;
                 windOffset = Math.sin(windTime) * (currentLevel * 1.5);
@@ -500,6 +572,12 @@
             ctx.fillStyle = '#b45309'; ctx.fillRect(wallX, wallY, wallW, wallH);
             
             windows.forEach(win => {
+                if (win.isMoving && gameState === 'playing') {
+                    win.x += win.speed;
+                    if (Math.abs(win.x - win.origX) > win.range) {
+                        win.speed *= -1;
+                    }
+                }
                 ctx.fillStyle = win.locked ? '#ef4444' : '#fef08a';
                 ctx.fillRect(win.x, win.y, win.w, win.h);
             });
@@ -525,6 +603,17 @@
                 ctx.restore();
             });
 
+            sparkles.forEach((s, idx) => {
+                ctx.save();
+                ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                s.alpha -= s.life;
+                if (s.alpha <= 0) sparkles.splice(idx, 1);
+            });
+
             beehives.forEach(hive => {
                 ctx.font = "18px Arial"; ctx.fillText("🐝", hive.x, hive.y);
             });
@@ -532,7 +621,23 @@
             obstacles.forEach((obs, idx) => {
                 obs.x += obs.speed;
                 ctx.font = "20px Arial"; ctx.fillText("🦅", obs.x, obs.y);
+
+                if (!obs.hasPooped && obs.x > wallX + 50 && Math.random() < 0.03) {
+                    obs.hasPooped = true;
+                    poops.push({ x: obs.x, y: obs.y });
+                    playSound('poop');
+                }
+
                 if (obs.x > canvas.width + 30) obstacles.splice(idx, 1);
+            });
+
+            poops.forEach(p => {
+                ctx.save();
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#78350f';
+                ctx.beginPath(); ctx.arc(p.x - 3, p.y - 2, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
             });
 
             items.forEach(it => {
@@ -555,7 +660,6 @@
             ctx.beginPath(); ctx.moveTo(x-20,0); ctx.lineTo(x-20,y); ctx.moveTo(x+20,0); ctx.lineTo(x+20,y); ctx.stroke();
             ctx.fillStyle = '#dc2626'; ctx.fillRect(x-25, y, 50, 8);
             
-            // 防護罩特效
             if (hasShield) {
                 ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.arc(x, y-25, 35, 0, Math.PI*2); ctx.stroke();
