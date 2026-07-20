@@ -1,1 +1,586 @@
-# window-game
+# window-game<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>極限洗窗工 - 穩定廣告獲利版</title>
+    
+    <!-- Google AdSense 主程式 (請將 ca-pub-XXXXXXXXXXXXXXXX 替換為你的發布商 ID) -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+
+    <style>
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0c4a6e; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        canvas { display: block; width: 100%; height: 100%; }
+        #ui-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 12px 15px; display: flex; justify-content: space-between; pointer-events: none; z-index: 5; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        .ui-text { color: #fff; font-size: 13px; font-weight: bold; text-shadow: 2px 2px 0 #000; margin-bottom: 2px; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.96); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center; padding: 20px; z-index: 10; overflow-y: auto; }
+        .overlay.hidden { display: none; }
+        .btn { background: #eab308; color: #0f172a; border: 3px solid #0f172a; padding: 10px 25px; font-size: 18px; font-weight: bold; border-radius: 12px; box-shadow: 3px 3px 0px #0f172a; cursor: pointer; pointer-events: auto; margin-top: 10px; }
+        .btn:disabled { background: #64748b; cursor: not-allowed; box-shadow: none; }
+        
+        #audio-btn { background: rgba(15, 23, 42, 0.8); color: #fff; border: 2px solid #38bdf8; padding: 3px 8px; border-radius: 18px; font-size: 11px; font-weight: bold; cursor: pointer; pointer-events: auto; margin-top: 4px; }
+        #item-toast { position: absolute; top: 95px; left: 50%; transform: translateX(-50%); background: rgba(234, 179, 8, 0.95); color: #0f172a; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 13px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 8; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        
+        .shop-box { background: rgba(30, 41, 59, 0.9); border: 2px solid #eab308; border-radius: 12px; padding: 12px; margin: 8px 0; width: 100%; max-width: 360px; text-align: left; }
+        .shop-title { text-align: center; font-weight: bold; color: #eab308; margin-bottom: 8px; font-size: 14px; }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; }
+        .shop-btn { background: #38bdf8; border: none; padding: 5px 10px; font-weight: bold; border-radius: 6px; cursor: pointer; color: #0f172a; font-size: 12px; }
+        .shop-btn:disabled { background: #475569; color: #94a3b8; }
+        
+        #fever-bar-container { width: 120px; height: 10px; background: #334155; border-radius: 5px; margin-top: 4px; border: 1px solid #fff; overflow: hidden; }
+        #fever-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #f43f5e, #eab308); transition: width 0.1s; }
+
+        /* 廣告容器樣式 */
+        .ad-container {
+            width: 100%;
+            max-width: 320px;
+            min-height: 50px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #94a3b8;
+            border: 1px dashed #475569;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-bar">
+        <div>
+            <div id="score-box" class="ui-text">SCORE: 00000</div>
+            <div id="clean-box" class="ui-text" style="color: #4ade80;">CLEAN: 0%</div>
+            <div id="combo-box" class="ui-text" style="color: #facc15;">COMBO: x0</div>
+            <div class="ui-text" style="display:flex; align-items:center;">🔥 大招: <div id="fever-bar-container"><div id="fever-bar"></div></div></div>
+        </div>
+        <div style="text-align: right;">
+            <div id="level-box" class="ui-text">LEVEL: 1</div>
+            <div id="time-box" class="ui-text">TIME: 60</div>
+            <div id="coin-box" class="ui-text" style="color: #fef08a;">💰 0</div>
+            <button id="audio-btn">🔊 音效：開</button>
+        </div>
+    </div>
+
+    <div id="item-toast">獲得提示！</div>
+
+    <!-- 開始畫面 -->
+    <div id="start-overlay" class="overlay">
+        <h1>極限洗窗工：終極版</h1>
+        <p style="font-size:14px; line-height:1.5;">
+            💥 雙擊畫面射出鋼索「蛛絲快跳」！<br>
+            🔥 保持 Combo 觸發「狂歡無敵雷射大招」！<br>
+            ⚠️ 當心破裂玻璃陷阱與窗內生氣住戶！<br>
+            👕 賺取金幣購買特殊技能與神級換裝！
+        </p>
+        <button id="start-btn" class="btn">開始挑戰</button>
+    </div>
+
+    <!-- 通關與商店畫面 -->
+    <div id="complete-overlay" class="overlay hidden">
+        <h2 id="complete-text" style="color: #4ade80; margin: 5px;">第 1 關完成！</h2>
+        <div id="achievement-text" style="color: #fef08a; font-weight: bold; margin-bottom: 5px; font-size:14px;"></div>
+        
+        <!-- 通關廣告位 -->
+        <div class="ad-container">
+            <ins class="adsbygoogle"
+                 style="display:inline-block;width:320px;height:50px"
+                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                 data-ad-slot="YYYYYYYYYYYY"></ins>
+        </div>
+
+        <!-- 道具商店 -->
+        <div class="shop-box">
+            <div class="shop-title">🛠️ 裝備與道具升級</div>
+            <div class="shop-item"><span>🧹 大號刮棒 (範圍+5)</span><button id="buy-squeegee" class="shop-btn">💰 120</button></div>
+            <div class="shop-item"><span>🛡️ 磁性防護罩 (自動吸道具/擋飛鳥)</span><button id="buy-shield" class="shop-btn">💰 180</button></div>
+        </div>
+
+        <!-- 角色造型商店 -->
+        <div class="shop-box">
+            <div class="shop-title">👕 傳奇火柴人換裝</div>
+            <div class="shop-item"><span>🕸️ 蜘蛛人套裝 (鋼索冷卻減半)</span><button id="buy-skin1" class="shop-btn">💰 250</button></div>
+            <div class="shop-item"><span>🚀 太空鋼鐵裝 (內置防護罩/範圍大)</span><button id="buy-skin2" class="shop-btn">💰 400</button></div>
+        </div>
+
+        <button id="next-btn" class="btn">前往下一關</button>
+    </div>
+
+    <!-- 遊戲結束畫面 -->
+    <div id="over-overlay" class="overlay hidden">
+        <h1 style="color: #f87171;">時間到！</h1>
+        <h2 id="final-stats">你爬到了 0 樓</h2>
+
+        <!-- 結算廣告位 -->
+        <div class="ad-container">
+            <ins class="adsbygoogle"
+                 style="display:inline-block;width:320px;height:50px"
+                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                 data-ad-slot="ZZZZZZZZZZZZ"></ins>
+        </div>
+
+        <button id="restart-btn" class="btn">重新挑戰</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // --- 容錯保護機制：防止 AdSense 被攔截時讓遊戲崩潰 ---
+        function safePushAd() {
+            try {
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
+            } catch (e) {
+                console.log("廣告載入被攔截，遊戲繼續正常運作。");
+            }
+        }
+
+        // --- Web Audio 音效引擎（含自動釋放） ---
+        let audioCtx = null, isAudioMuted = false, bgmTimer = null;
+        function initAudio() { 
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (isAudioMuted || !audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+                if (type === 'wipe') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.04);
+                    gain.gain.setValueAtTime(0.06, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                    osc.start(now); osc.stop(now + 0.04);
+                } else if (type === 'hit' || type === 'break') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now);
+                    gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now); osc.stop(now + 0.2);
+                } else if (type === 'item') {
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(523, now); osc.frequency.setValueAtTime(784, now + 0.08);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now); osc.stop(now + 0.2);
+                } else if (type === 'fever') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, now); osc.frequency.linearRampToValueAtTime(1500, now + 0.5);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now); osc.stop(now + 0.5);
+                } else if (type === 'win') {
+                    [440, 554, 659, 880].forEach((f, i) => {
+                        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                        o.connect(g); g.connect(audioCtx.destination);
+                        o.frequency.setValueAtTime(f, now + i * 0.08);
+                        g.gain.setValueAtTime(0.15, now + i * 0.08); g.gain.linearRampToValueAtTime(0.001, now + i * 0.08 + 0.12);
+                        o.start(now + i * 0.08); o.stop(now + i * 0.08 + 0.12);
+                    });
+                }
+            } catch(e){}
+        }
+
+        let bgmNoteIndex = 0;
+        function startBGM() {
+            stopBGM();
+            bgmTimer = setInterval(() => {
+                if (!isAudioMuted && gameState === 'playing' && audioCtx) {
+                    try {
+                        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                        osc.connect(gain); gain.connect(audioCtx.destination);
+                        osc.type = 'sine'; osc.frequency.setValueAtTime([261, 329, 392, 329, 293, 349, 440, 349][bgmNoteIndex%8], audioCtx.currentTime);
+                        gain.gain.setValueAtTime(0.02, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+                        osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.18);
+                        bgmNoteIndex++;
+                    } catch(e){}
+                }
+            }, 220);
+        }
+        function stopBGM() { if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; } }
+
+        // --- 核心全域變數 ---
+        const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
+        const dirtCanvas = document.createElement('canvas'); const dirtCtx = dirtCanvas.getContext('2d');
+        const fogCanvas = document.createElement('canvas'); const fogCtx = fogCanvas.getContext('2d');
+
+        const startOverlay = document.getElementById('start-overlay'); const completeOverlay = document.getElementById('complete-overlay');
+        const overOverlay = document.getElementById('over-overlay'); const startBtn = document.getElementById('start-btn');
+        const nextBtn = document.getElementById('next-btn'); const restartBtn = document.getElementById('restart-btn');
+        const itemToast = document.getElementById('item-toast'); const audioBtn = document.getElementById('audio-btn');
+
+        let gameState = 'start', score = 0, coins = 0, currentLevel = 1, timeLeft = 60, timerInterval = null;
+        let stickman = { x: 0, y: 0, targetX: 0, targetY: 0 };
+        let isDrawing = false, windows = [], items = [], obstacles = [], particles = [];
+        let wallX, wallY, wallW, wallH;
+        let totalDirtPixels = 0, cleanedProgress = 0;
+        
+        let baseWipeRadius = 28, wipeRadius = 28;
+        let hasShield = false, equippedSkin = 'default', ownedSkins = ['default'];
+        let comboCount = 0, comboTimer = null, hitCountThisLevel = 0;
+        let windOffset = 0, windTime = 0, shakeTime = 0;
+        let isFever = false, feverProgress = 0, feverTimeLeft = 0;
+        let lastTapTime = 0, animationFrameId = null;
+
+        audioBtn.addEventListener('click', () => {
+            isAudioMuted = !isAudioMuted;
+            audioBtn.textContent = isAudioMuted ? "🔇 音效：關" : "🔊 音效：開";
+        });
+
+        // 商店購買事件 Binding
+        document.getElementById('buy-squeegee').addEventListener('click', () => { if(coins>=120){ coins-=120; baseWipeRadius+=5; updateUI(); showToast("🧹 刮棒永久增大！"); } });
+        document.getElementById('buy-shield').addEventListener('click', () => { if(coins>=180 && !hasShield){ coins-=180; hasShield=true; updateUI(); showToast("🛡️ 磁性防護罩已裝備！"); } });
+        document.getElementById('buy-skin1').addEventListener('click', () => { if(coins>=250 && !ownedSkins.includes('spider')){ coins-=250; ownedSkins.push('spider'); equippedSkin='spider'; updateUI(); showToast("🕸️ 解鎖並穿上蜘蛛人套裝！"); } });
+        document.getElementById('buy-skin2').addEventListener('click', () => { if(coins>=400 && !ownedSkins.includes('ironman')){ coins-=400; ownedSkins.push('ironman'); equippedSkin='ironman'; baseWipeRadius=Math.max(baseWipeRadius, 36); hasShield=true; updateUI(); showToast("🚀 解鎖並穿上太空鋼鐵裝！"); } });
+
+        function updateUI() {
+            document.getElementById('score-box').textContent = `SCORE: ${String(score).padStart(5, '0')}`;
+            document.getElementById('coin-box').textContent = `💰 ${coins}`;
+            document.getElementById('combo-box').textContent = `COMBO: x${comboCount}`;
+            document.getElementById('fever-bar').style.width = `${Math.min(100, (feverProgress/20)*100)}%`;
+            
+            document.getElementById('buy-squeegee').disabled = coins < 120;
+            document.getElementById('buy-shield').disabled = coins < 180 || hasShield;
+            document.getElementById('buy-skin1').disabled = coins < 250 || ownedSkins.includes('spider');
+            document.getElementById('buy-skin2').disabled = coins < 400 || ownedSkins.includes('ironman');
+        }
+
+        // 計時器防重疊機制
+        function runTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (gameState === 'playing') {
+                    timeLeft--;
+                    document.getElementById('time-box').textContent = `TIME: ${timeLeft}`;
+                    
+                    if (currentLevel >= 3 && Math.random() < 0.4 && obstacles.length < 5) {
+                        obstacles.push({ x: -30, y: wallY + Math.random() * wallH, speed: 4 + Math.random() * 3 });
+                    }
+
+                    if (timeLeft <= 0) { 
+                        gameState = 'gameover'; clearInterval(timerInterval); timerInterval = null; stopBGM();
+                        document.getElementById('final-stats').textContent = `你爬到了 ${currentLevel} 樓`;
+                        overOverlay.classList.remove('hidden'); 
+                        safePushAd();
+                    }
+                }
+            }, 1000);
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            dirtCanvas.width = canvas.width; dirtCanvas.height = canvas.height;
+            fogCanvas.width = canvas.width; fogCanvas.height = canvas.height;
+            wallW = canvas.width - 40; wallH = canvas.height - 140; wallX = 20; wallY = 90;
+            stickman.x = stickman.targetX = canvas.width / 2; stickman.y = stickman.targetY = canvas.height * 0.7;
+            initWindows();
+        }
+
+        function initWindows() {
+            windows = []; items = []; obstacles = []; particles = []; hitCountThisLevel = 0;
+            const rows = Math.min(3 + Math.floor((currentLevel - 1) / 2), 6); const cols = 3;
+            const winW = (wallW - 30) / cols; const winH = (wallH - 40) / rows;
+            dirtCtx.clearRect(0, 0, dirtCanvas.width, dirtCanvas.height);
+            fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
+            totalDirtPixels = 0;
+
+            if (currentLevel >= 3 && Math.random() < 0.5) {
+                fogCtx.fillStyle = 'rgba(241, 245, 249, 0.88)'; fogCtx.fillRect(wallX, wallY, wallW, wallH);
+            }
+
+            const lockChance = Math.min(0.15 + (currentLevel * 0.04), 0.45);
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let wx = wallX + 15 + c * (winW + 5), wy = wallY + 15 + r * (winH + 8);
+                    let isCracked = currentLevel >= 4 && Math.random() < 0.15;
+                    let isLocked = !isCracked && Math.random() < lockChance;
+                    
+                    windows.push({ x: wx, y: wy, w: winW, h: winH, locked: isLocked, cracked: isCracked, eventState: 'none' });
+                    
+                    if (!isLocked) {
+                        dirtCtx.fillStyle = '#1e3a8a'; dirtCtx.fillRect(wx, wy, winW, winH);
+                        if (currentLevel >= 2 && Math.random() < 0.35) {
+                            dirtCtx.fillStyle = '#b91c1c'; dirtCtx.fillRect(wx + 8, wy + 8, winW - 16, winH - 16);
+                        }
+                        totalDirtPixels += (winW * winH);
+                    }
+                }
+            }
+
+            if (windows.length > 0) {
+                let w = windows.filter(win => !win.locked)[0];
+                if (w) items.push({ x: w.x + w.w/2, y: w.y + w.h/2, type: Math.random()<0.5?'bucket':'squeegee' });
+            }
+            calculateProgress();
+        }
+
+        function showToast(text) { itemToast.textContent = text; itemToast.style.opacity = 1; setTimeout(() => { itemToast.style.opacity = 0; }, 2000); }
+
+        function createParticles(x, y, color, count=8) {
+            // 粒子數量上限保護，防止記憶體暴漲
+            if (particles.length > 100) return;
+            for(let i=0; i<count; i++) {
+                particles.push({ x: x, y: y, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, alpha: 1, color: color, size: 2+Math.random()*4 });
+            }
+        }
+
+        function calculateProgress() {
+            if (totalDirtPixels === 0) return;
+            let currentDirtCount = 0;
+            windows.forEach(win => {
+                if (!win.locked) {
+                    const imgData = dirtCtx.getImageData(win.x, win.y, win.w, win.h);
+                    const data = imgData.data;
+                    for (let i = 3; i < data.length; i += 32) { if (data[i] > 10) currentDirtCount++; }
+                }
+            });
+            let percent = Math.floor(((totalDirtPixels/8 - currentDirtCount) / (totalDirtPixels/8)) * 100);
+            cleanedProgress = Math.max(0, Math.min(100, percent));
+            document.getElementById('clean-box').textContent = `CLEAN: ${cleanedProgress}%`;
+        }
+
+        function triggerFever() {
+            isFever = true; feverTimeLeft = 180;
+            playSound('fever'); showToast("🔥 狂歡時刻！雷射全螢幕蒸發！");
+        }
+
+        function updateTouch(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            let nowTime = Date.now();
+            if (nowTime - lastTapTime < 250 && gameState === 'playing') {
+                let jumpDist = Math.hypot(clientX - stickman.x, clientY - stickman.y);
+                if (jumpDist > 50) {
+                    stickman.x = stickman.targetX = clientX;
+                    stickman.y = stickman.targetY = clientY;
+                    playSound('item'); showToast("🕸️ 蛛絲快跳！");
+                    createParticles(clientX, clientY, '#38bdf8', 12);
+                }
+            }
+            lastTapTime = nowTime;
+
+            stickman.targetX = clientX - rect.left; stickman.targetY = clientY - rect.top;
+            if (gameState !== 'playing') return;
+
+            const wipeX = stickman.x + 15, wipeY = stickman.y - 35;
+
+            if (comboTimer) clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => { comboCount = 0; updateUI(); }, 1200);
+
+            if (equippedSkin === 'ironman' || hasShield) {
+                items.forEach(it => {
+                    if (Math.hypot(wipeX - it.x, wipeY - it.y) < 150) {
+                        it.x += (wipeX - it.x) * 0.2; it.y += (wipeY - it.y) * 0.2;
+                    }
+                });
+            }
+
+            items.forEach((it, index) => {
+                if (Math.hypot(wipeX - it.x, wipeY - it.y) < 40) {
+                    playSound('item');
+                    if (it.type === 'bucket') {
+                        windows.forEach(w => { if (!w.locked) dirtCtx.clearRect(w.x, w.y, w.w, w.h); });
+                        showToast("🪣 水桶爆發！全螢幕清空！");
+                    } else {
+                        wipeRadius = baseWipeRadius + 25; showToast("🧹 巨大刮棒觸發！");
+                        setTimeout(() => { wipeRadius = baseWipeRadius; }, 8000);
+                    }
+                    items.splice(index, 1);
+                }
+            });
+
+            obstacles.forEach((obs, index) => {
+                if (Math.hypot(wipeX - obs.x, wipeY - obs.y) < 30) {
+                    if (hasShield || equippedSkin === 'ironman') {
+                        hasShield = false; playSound('item'); showToast("🛡️ 防護罩抵擋撞擊！"); updateUI();
+                    } else {
+                        playSound('hit'); timeLeft = Math.max(1, timeLeft - 3); hitCountThisLevel++;
+                        shakeTime = 15; showToast("🦅 遭到飛鳥撞擊 -3秒！");
+                    }
+                    obstacles.splice(index, 1);
+                }
+            });
+
+            windows.forEach(win => {
+                if (wipeX > win.x && wipeX < win.x + win.w && wipeY > win.y && wipeY < win.y + win.h) {
+                    if (win.locked && !isFever) {
+                        playSound('hit'); comboCount = 0; score = Math.max(0, score - 1); hitCountThisLevel++; updateUI();
+                    }
+                    if (win.cracked && !isFever) {
+                        playSound('break'); win.cracked = false; win.locked = true;
+                        timeLeft = Math.max(1, timeLeft - 5); shakeTime = 25;
+                        showToast("🪟 玻璃碎裂！時間大扣 5 秒！");
+                    }
+                    if (!win.locked && !win.cracked && win.eventState === 'none' && Math.random() < 0.01) {
+                        win.eventState = Math.random() < 0.6 ? 'cat' : 'angry';
+                        setTimeout(() => {
+                            if (win.eventState === 'cat') { coins += 30; score += 200; showToast("🐱 擦出幸運貓咪！💰 +30"); }
+                            else if (win.eventState === 'angry') {
+                                dirtCtx.fillStyle = '#1e3a8a'; dirtCtx.fillRect(win.x+5, win.y+5, win.w-10, win.h-10);
+                                showToast("😡 住戶嫌吵潑水！窗戶又髒了！"); calculateProgress();
+                            }
+                            win.eventState = 'done';
+                        }, 1000);
+                    }
+                }
+            });
+
+            dirtCtx.save(); dirtCtx.globalCompositeOperation = 'destination-out';
+            fogCtx.save(); fogCtx.globalCompositeOperation = 'destination-out';
+            if (isFever) {
+                dirtCtx.fillStyle = '#fff'; dirtCtx.fillRect(wallX, wallY, wallW, wallH);
+                fogCtx.fillStyle = '#fff'; fogCtx.fillRect(wallX, wallY, wallW, wallH);
+                createParticles(wipeX, wipeY, '#f43f5e', 2);
+            } else {
+                dirtCtx.beginPath(); dirtCtx.arc(wipeX, wipeY, wipeRadius, 0, Math.PI * 2); dirtCtx.fill();
+                fogCtx.beginPath(); dirtCtx.arc(wipeX, wipeY, wipeRadius + 15, 0, Math.PI * 2); fogCtx.fill();
+                if (Math.random() < 0.4) createParticles(wipeX, wipeY, '#38bdf8', 1);
+            }
+            dirtCtx.restore(); fogCtx.restore();
+
+            if (!isFever) {
+                comboCount++;
+                if (comboCount % 15 === 0) playSound('wipe');
+                feverProgress = Math.min(20, feverProgress + 0.05);
+                if (feverProgress >= 20) triggerFever();
+                score += (1 + Math.floor(comboCount / 15));
+            }
+            updateUI(); calculateProgress();
+        }
+
+        function checkLevelCompletion() {
+            if (gameState !== 'playing') return;
+            if (cleanedProgress >= 96) {
+                gameState = 'complete'; clearInterval(timerInterval); timerInterval = null; stopBGM(); playSound('win');
+                let bonus = 40 + timeLeft * 2; coins += bonus; score += (600 + timeLeft * 10);
+                let ach = "🎖️ 順利抵達此樓層！";
+                if (hitCountThisLevel === 0) ach = "🌟 零失誤完美傳奇！(洗窗大師稱號)";
+                else if (timeLeft >= 30) ach = "⚡ 閃電神速手！(極速清潔工稱號)";
+                
+                document.getElementById('complete-text').textContent = `第 ${currentLevel} 樓完成！ 💰 +${bonus}`;
+                document.getElementById('achievement-text').textContent = ach;
+                
+                for(let i=0; i<40; i++) particles.push({ x: canvas.width/2, y: canvas.height/2, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.7)*12, alpha: 1, color: `hsl(${Math.random()*360}, 100%, 60%)`, size: 4+Math.random()*4 });
+                
+                updateUI(); completeOverlay.classList.remove('hidden');
+                safePushAd();
+            }
+        }
+
+        canvas.addEventListener('pointerdown', (e) => { initAudio(); isDrawing = true; updateTouch(e); });
+        canvas.addEventListener('pointermove', (e) => { if (isDrawing) updateTouch(e); });
+        canvas.addEventListener('pointerup', () => { isDrawing = false; checkLevelCompletion(); });
+
+        // 主遊戲繪製循環 (優化記憶體清理)
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            if (shakeTime > 0) {
+                let dx = (Math.random()-0.5)*8, dy = (Math.random()-0.5)*8;
+                ctx.translate(dx, dy); shakeTime--;
+            }
+
+            let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            if (currentLevel <= 2) { grad.addColorStop(0, '#38bdf8'); grad.addColorStop(1, '#bae6fd'); }
+            else if (currentLevel <= 5) { grad.addColorStop(0, '#f97316'); grad.addColorStop(1, '#fef08a'); }
+            else { grad.addColorStop(0, '#0f172a'); grad.addColorStop(1, '#3b0764'); }
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (currentLevel >= 3) { windTime += 0.04; windOffset = Math.sin(windTime) * (currentLevel * 1.8); ctx.translate(windOffset, 0); }
+
+            ctx.fillStyle = '#b45309'; ctx.fillRect(wallX, wallY, wallW, wallH);
+
+            windows.forEach(win => {
+                ctx.fillStyle = win.locked ? '#ef4444' : '#fef08a';
+                if (win.cracked) ctx.fillStyle = '#cbd5e1';
+                ctx.fillRect(win.x, win.y, win.w, win.h);
+                ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.strokeRect(win.x, win.y, win.w, win.h);
+                
+                if (win.cracked) {
+                    ctx.strokeStyle = '#71717a'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(win.x+10, win.y+10); ctx.lineTo(win.x+win.w-15, win.y+win.h-10);
+                    ctx.moveTo(win.x+win.w/2, win.y+5); ctx.lineTo(win.x+10, win.y+win.h-10); ctx.stroke();
+                }
+
+                if (win.eventState === 'cat') { ctx.font="22px Arial"; ctx.fillText("🐱", win.x+win.w/2-10, win.y+win.h/2+8); }
+                if (win.eventState === 'angry') { ctx.font="22px Arial"; ctx.fillText("😡💦", win.x+win.w/2-20, win.y+win.h/2+8); }
+            });
+
+            ctx.drawImage(dirtCanvas, 0, 0);
+            ctx.drawImage(fogCanvas, 0, 0);
+
+            items.forEach(it => { ctx.font = "24px Arial"; ctx.fillText(it.type === 'bucket' ? "🪣" : "🧹", it.x - 12, it.y + 8); });
+            
+            // 飛鳥越界清理
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x += obstacles[i].speed;
+                ctx.font = "24px Arial"; ctx.fillText("🦅", obstacles[i].x, obstacles[i].y);
+                if (obstacles[i].x > canvas.width + 50) obstacles.splice(i, 1);
+            }
+
+            if (isFever) {
+                feverTimeLeft--;
+                ctx.strokeStyle = 'rgba(244, 63, 94, 0.4)'; ctx.lineWidth = 40;
+                ctx.strokeRect(wallX, wallY, wallW, wallH);
+                if (feverTimeLeft <= 0) { isFever = false; feverProgress = 0; updateUI(); }
+            }
+
+            // 粒子淡出銷毀
+            for (let idx = particles.length - 1; idx >= 0; idx--) {
+                let p = particles[idx];
+                p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
+                ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                ctx.globalAlpha = 1; 
+                if (p.alpha <= 0) particles.splice(idx, 1);
+            }
+
+            stickman.x += (stickman.targetX - stickman.x) * 0.22; stickman.y += (stickman.targetY - stickman.y) * 0.22;
+            
+            let ropeColor = '#1e293b', bodyColor = '#ffffff';
+            if (equippedSkin === 'spider') { ropeColor = '#ef4444'; bodyColor = '#3b82f6'; }
+            if (equippedSkin === 'ironman') { ropeColor = '#eab308'; bodyColor = '#dc2626'; }
+
+            ctx.strokeStyle = ropeColor; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(stickman.x-20,0); ctx.lineTo(stickman.x-20,stickman.y); ctx.moveTo(stickman.x+20,0); ctx.lineTo(stickman.x+20,stickman.y); ctx.stroke();
+            ctx.fillStyle = '#dc2626'; ctx.fillRect(stickman.x-25, stickman.y, 50, 8);
+            
+            if (hasShield) { ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(stickman.x, stickman.y-25, 35, 0, Math.PI*2); ctx.stroke(); }
+
+            ctx.strokeStyle = bodyColor; ctx.fillStyle = bodyColor; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(stickman.x, stickman.y-48, 7, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(stickman.x, stickman.y-41); ctx.lineTo(stickman.x, stickman.y-20); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(stickman.x, stickman.y-35); ctx.lineTo(stickman.x-15, stickman.y-25); ctx.lineTo(stickman.x+15, stickman.y-25); stroke();
+            ctx.beginPath(); ctx.moveTo(stickman.x, stickman.y-20); ctx.lineTo(stickman.x-10, stickman.y); ctx.moveTo(stickman.x, stickman.y-20); ctx.lineTo(stickman.x+10, stickman.y); ctx.stroke();
+
+            ctx.restore();
+            animationFrameId = requestAnimationFrame(draw);
+        }
+
+        function startGame() {
+            initAudio(); score = 0; coins = 0; currentLevel = 1; baseWipeRadius = 28; feverProgress = 0; isFever = false;
+            hasShield = equippedSkin === 'ironman'; timeLeft = 60; updateUI();
+            startOverlay.classList.add('hidden'); overOverlay.classList.add('hidden');
+            gameState = 'playing'; initWindows(); runTimer(); startBGM();
+        }
+
+        function nextLevel() {
+            initAudio(); currentLevel++; timeLeft = Math.max(35, 65 - currentLevel * 3);
+            document.getElementById('level-box').textContent = `LEVEL: ${currentLevel}`;
+            document.getElementById('time-box').textContent = `TIME: ${timeLeft}`;
+            completeOverlay.classList.add('hidden'); initWindows(); gameState = 'playing'; runTimer(); startBGM();
+        }
+
+        window.addEventListener('resize', resize); resize();
+        startBtn.addEventListener('click', startGame); nextBtn.addEventListener('click', nextLevel); restartBtn.addEventListener('click', startGame);
+        
+        // 啟動主渲染循環
+        draw();
+    </script>
+</body>
+</html>
