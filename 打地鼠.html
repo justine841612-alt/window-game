@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>🔨 瘋狂打地鼠：手感優化版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #121913;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .game-card {
+            background: #1e2e20;
+            width: 100%;
+            max-width: 420px;
+            padding: 20px 16px;
+            border-radius: 28px;
+            border: 3px solid #335235;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+            text-align: center;
+            position: relative;
+            transition: border-color 0.3s;
+        }
+
+        .game-card.fever-mode {
+            border-color: #ff3b30 !important;
+            box-shadow: 0 0 25px rgba(255, 59, 48, 0.8) !important;
+            animation: pulseCard 0.5s infinite alternate;
+        }
+
+        @keyframes pulseCard {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.01); }
+        }
+
+        .level-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .level-badge {
+            background: #ff9500;
+            color: #000;
+            font-weight: 900;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+
+        .total-coins-header {
+            background: rgba(255,204,0,0.15);
+            border: 1px solid #ffcc00;
+            color: #ffcc00;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        h1 { font-size: 1.2rem; color: #ffcc00; }
+
+        .status-banner {
+            height: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 8px;
+            font-weight: 900;
+            font-size: 0.95rem;
+        }
+        .combo-text { color: #4cd964; }
+        .fever-text { color: #ff2d55; animation: blink 0.2s infinite alternate; font-size: 1.1rem; }
+
+        @keyframes blink { 0% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .dashboard {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(0,0,0,0.4);
+            padding: 8px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .dash-item { display: flex; flex-direction: column; }
+        .dash-label { font-size: 0.65rem; color: #8fae92; }
+        .dash-value { font-size: 1.05rem; font-weight: 900; color: #ffffff; }
+        .dash-value.target { color: #4cd964; }
+        .dash-value.highlight { color: #ffcc00; }
+
+        .grid {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 12px;
+            min-height: 270px;
+            align-content: center;
+        }
+
+        .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+        .hole {
+            position: relative;
+            aspect-ratio: 1;
+            background: #0d140e;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #283d29;
+            box-shadow: inset 0 6px 10px rgba(0,0,0,0.9);
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .hole::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 25%;
+            background: #283d29;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .mole {
+            position: absolute;
+            width: 75%; height: 75%;
+            left: 12.5%; bottom: -80%;
+            background: linear-gradient(180deg, #a66a38 0%, #6d421e 100%);
+            border-radius: 30px 30px 12px 12px;
+            /* 將升降動畫加快，提升回饋感 */
+            transition: bottom 0.05s ease-out;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 6px;
+            pointer-events: none;
+        }
+
+        .hole.up .mole { bottom: 8%; }
+
+        .mole.type-gold {
+            background: linear-gradient(180deg, #ffe066 0%, #d4af37 100%) !important;
+            box-shadow: 0 0 10px #ffcc00;
+        }
+        .mole.type-bomb { background: linear-gradient(180deg, #444444 0%, #111111 100%) !important; }
+
+        .mole-eyes { display: flex; gap: 6px; margin-bottom: 2px; }
+        .mole-eye { width: 5px; height: 5px; background: #000; border-radius: 50%; }
+        .mole-snout { width: 14px; height: 8px; background: #f5c29b; border-radius: 8px; }
+
+        .mole.hit { transform: scale(0.85); filter: brightness(0.7); }
+
+        .hit-pop {
+            position: absolute;
+            top: 20%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1rem;
+            font-weight: 900;
+            pointer-events: none;
+            z-index: 5;
+            animation: popUp 0.35s ease-out forwards;
+        }
+
+        @keyframes popUp {
+            0% { opacity: 1; transform: translate(-50%, -20%) scale(0.8); }
+            100% { opacity: 0; transform: translate(-50%, -60%) scale(1.2); }
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 18, 11, 0.94);
+            border-radius: 28px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            padding: 20px;
+        }
+
+        .overlay h2 { font-size: 1.6rem; color: #ffcc00; margin-bottom: 10px; }
+
+        .result-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 15px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            color: #d1e0d3;
+        }
+        .result-row:last-child { margin-bottom: 0; }
+        .result-val { font-weight: 900; font-size: 1.1rem; }
+        .result-val.green { color: #4cd964; }
+        .result-val.gold { color: #ffcc00; }
+
+        .btn-group { display: flex; gap: 10px; width: 100%; }
+
+        .btn-action {
+            flex: 2;
+            background: linear-gradient(135deg, #4cd964, #28a745);
+            color: #ffffff;
+            border: none;
+            padding: 12px;
+            font-size: 1.05rem;
+            font-weight: 900;
+            border-radius: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .btn-shop {
+            flex: 1;
+            background: linear-gradient(135deg, #ff9500, #ff5e00);
+            color: #ffffff;
+            border: none;
+            padding: 12px;
+            font-size: 1.05rem;
+            font-weight: 900;
+            border-radius: 18px;
+            cursor: pointer;
+        }
+
+        .shop-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 12px;
+            border-radius: 14px;
+        }
+
+        .shop-item-info { text-align: left; }
+        .shop-item-title { font-weight: 800; font-size: 0.95rem; color: #ffcc00; }
+        .shop-item-desc { font-size: 0.75rem; color: #aaa; }
+
+        .btn-buy {
+            background: #ffcc00;
+            color: #000;
+            border: none;
+            padding: 6px 12px;
+            font-weight: 900;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .btn-buy.equipped { background: #4cd964; color: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="game-card" id="gameCard">
+    <div class="level-header">
+        <span class="level-badge" id="levelBadge">第 1 關</span>
+        <h1>🔨 瘋狂打地鼠</h1>
+        <span class="total-coins-header">🪙 <span id="totalCoinsText">0</span></span>
+    </div>
+
+    <div class="status-banner" id="statusBanner">
+        <span class="combo-text" id="comboText"></span>
+    </div>
+
+    <div class="dashboard">
+        <div class="dash-item"><span class="dash-label">時間</span><span class="dash-value" id="timeLeft">20s</span></div>
+        <div class="dash-item"><span class="dash-label">得分</span><span class="dash-value highlight" id="score">0</span></div>
+        <div class="dash-item"><span class="dash-label">目標</span><span class="dash-value target" id="targetScore">12</span></div>
+    </div>
+
+    <div class="grid cols-3" id="grid"></div>
+
+    <div class="overlay" id="overlay">
+        <h2 id="overlayTitle">🔨 準備好了嗎？</h2>
+        
+        <div class="result-box" id="resultBox" style="display: none;">
+            <div class="result-row">
+                <span>本關得分：</span>
+                <span class="result-val green" id="resScore">0 / 12</span>
+            </div>
+            <div class="result-row">
+                <span>本關金幣：</span>
+                <span class="result-val gold" id="resCoins">+0 🪙</span>
+            </div>
+            <div class="result-row" style="border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 6px; margin-top: 6px;">
+                <span>累積總金幣：</span>
+                <span class="result-val gold" id="resTotalCoins">0 🪙</span>
+            </div>
+        </div>
+
+        <div class="btn-group" id="mainOverlayBtns">
+            <button class="btn-action" id="actionBtn" onclick="startCurrentLevel()">開始挑戰</button>
+            <button class="btn-shop" onclick="openShop()">🛍️ 商店</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="shopOverlay" style="display: none;">
+        <h2>🛍️ 武器裝備店</h2>
+        <div class="shop-list" id="shopList"></div>
+        <button class="btn-action" style="width: 100%;" onclick="closeShop()">返回遊戲</button>
+    </div>
+</div>
+
+<script>
+    let currentLevel = 1;
+    let score = 0;
+    let levelCoins = 0;
+    let totalCoins = parseInt(localStorage.getItem('mole_total_coins')) || 0;
+    let currentHammer = localStorage.getItem('mole_hammer') || 'wood';
+    let unlockedHammers = JSON.parse(localStorage.getItem('mole_unlocked_hammers')) || ['wood'];
+
+    let timeLeft = 20;
+    let targetScore = 12;
+    let timer = null;
+    let moleTimer = null;
+    let timeUp = true;
+
+    let combo = 0;
+    let isFever = false;
+    let feverTimer = null;
+
+    const levelConfigs = [
+        { level: 1, cols: 3, rows: 3, target: 12, time: 20, speed: 700 },
+        { level: 2, cols: 3, rows: 3, target: 18, time: 20, speed: 580 },
+        { level: 3, cols: 4, rows: 3, target: 25, time: 20, speed: 500 },
+        { level: 4, cols: 4, rows: 3, target: 32, time: 20, speed: 420 },
+        { level: 5, cols: 4, rows: 4, target: 40, time: 20, speed: 360 },
+        { level: 6, cols: 4, rows: 4, target: 50, time: 20, speed: 320 }
+    ];
+
+    const hammerData = {
+        'wood': { name: '🔨 木槌', price: 0, desc: '標準武器，無特殊效果' },
+        'thunder': { name: '⚡ 雷神之槌', price: 50, desc: '擊中得分增加 50%' },
+        'gold': { name: '👑 黃金大槌', price: 100, desc: '得分與獲得金幣全部 2 倍！' }
+    };
+
+    document.getElementById('totalCoinsText').textContent = totalCoins;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        if (type === 'hit') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.08);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.08);
+        } else if (type === 'fever') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'win') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        }
+    }
+
+    function renderGrid(cols, rows) {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        grid.className = `grid cols-${cols}`;
+        for (let i = 0; i < cols * rows; i++) {
+            const hole = document.createElement('div');
+            hole.className = 'hole';
+            // 使用 pointerdown 強制即時判定
+            hole.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                bonk(hole);
+            });
+            hole.innerHTML = `
+                <div class="mole">
+                    <div class="mole-eyes"><div class="mole-eye"></div><div class="mole-eye"></div></div>
+                    <div class="mole-snout"></div>
+                </div>
+            `;
+            grid.appendChild(hole);
+        }
+    }
+
+    function peep() {
+        if (timeUp) return;
+        const config = levelConfigs[Math.min(currentLevel - 1, levelConfigs.length - 1)];
+        const holes = document.querySelectorAll('.hole');
+        if (holes.length === 0) return;
+
+        const hole = holes[Math.floor(Math.random() * holes.length)];
+        const mole = hole.querySelector('.mole');
+
+        mole.className = 'mole';
+
+        if (isFever) {
+            mole.classList.add('type-gold');
+        } else {
+            if (Math.random() < 0.2) mole.classList.add('type-gold');
+            if (Math.random() < 0.15) mole.classList.add('type-bomb');
+        }
+
+        hole.classList.add('up');
+        hole.dataset.canHit = "true"; // 設定可命中標記
+
+        clearTimeout(moleTimer);
+        // 重點修正：狂暴速度調整為 380ms，既流暢又好按
+        const currentSpeed = isFever ? 380 : config.speed; 
+
+        moleTimer = setTimeout(() => {
+            hole.classList.remove('up');
+            // 延遲 100ms 才關閉打擊判定（給玩家額外的按壓緩衝時間）
+            setTimeout(() => { hole.dataset.canHit = "false"; }, 100);
+
+            if (!timeUp) peep();
+        }, currentSpeed);
+    }
+
+    function startCurrentLevel() {
+        clearInterval(timer);
+        clearTimeout(moleTimer);
+        clearTimeout(feverTimer);
+
+        document.getElementById('overlay').style.display = 'none';
+        
+        const config = levelConfigs[Math.min(currentLevel - 1, levelConfigs.length - 1)];
+        score = 0; levelCoins = 0; combo = 0; isFever = false;
+        timeLeft = config.time; targetScore = config.target; timeUp = false;
+
+        document.getElementById('gameCard').classList.remove('fever-mode');
+        document.getElementById('statusBanner').innerHTML = '';
+        document.getElementById('score').textContent = score;
+        document.getElementById('targetScore').textContent = targetScore;
+        document.getElementById('timeLeft').textContent = timeLeft + 's';
+        document.getElementById('levelBadge').textContent = `第 ${currentLevel} 關`;
+
+        renderGrid(config.cols, config.rows);
+
+        timer = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timeLeft').textContent = timeLeft + 's';
+
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                clearTimeout(moleTimer);
+                timeUp = true;
+                document.querySelectorAll('.hole').forEach(h => {
+                    h.classList.remove('up');
+                    h.dataset.canHit = "false";
+                });
+                checkLevelResult();
+            }
+        }, 1000);
+
+        peep();
+    }
+
+    function triggerFever() {
+        isFever = true;
+        playSound('fever');
+        document.getElementById('gameCard').classList.add('fever-mode');
+        document.getElementById('statusBanner').innerHTML = '<span class="fever-text">🔥 FEVER 狂暴時間！！ 🔥</span>';
+
+        feverTimer = setTimeout(() => {
+            isFever = false;
+            combo = 0;
+            document.getElementById('gameCard').classList.remove('fever-mode');
+            document.getElementById('statusBanner').innerHTML = '';
+        }, 5000);
+    }
+
+    function checkLevelResult() {
+        const overlay = document.getElementById('overlay');
+        const title = document.getElementById('overlayTitle');
+        const resultBox = document.getElementById('resultBox');
+        const btn = document.getElementById('actionBtn');
+
+        overlay.style.display = 'flex';
+        resultBox.style.display = 'block';
+
+        totalCoins += levelCoins;
+        localStorage.setItem('mole_total_coins', totalCoins);
+        document.getElementById('totalCoinsText').textContent = totalCoins;
+
+        document.getElementById('resScore').textContent = `${score} / ${targetScore}`;
+        document.getElementById('resCoins').textContent = `+${levelCoins} 🪙`;
+        document.getElementById('resTotalCoins').textContent = `${totalCoins} 🪙`;
+
+        if (score >= targetScore) {
+            playSound('win');
+            currentLevel++;
+            title.textContent = '🎉 闖關成功！';
+            title.style.color = '#ffcc00';
+            btn.textContent = '進入下一關';
+        } else {
+            title.textContent = '💔 闖關失敗！';
+            title.style.color = '#ff3b30';
+            btn.textContent = '重新挑戰本關';
+        }
+        btn.onclick = startCurrentLevel;
+    }
+
+    function bonk(hole) {
+        if (timeUp) return;
+        const mole = hole.querySelector('.mole');
+
+        // 改進判定：只要在顯示狀態或具有可打擊標記，且尚未被敲擊過，就判定成功！
+        const canHit = hole.classList.contains('up') || hole.dataset.canHit === "true";
+        if (!canHit || mole.classList.contains('hit')) return;
+
+        mole.classList.add('hit');
+        hole.dataset.canHit = "false";
+
+        let points = 1;
+        let earnedCoins = 1;
+        let popText = '+1';
+
+        if (mole.classList.contains('type-gold')) {
+            points = 3; earnedCoins = 3; popText = '+3 🌟';
+        } else if (mole.classList.contains('type-bomb')) {
+            points = -2; earnedCoins = 0; popText = '-2 💣';
+            combo = 0;
+        }
+
+        if (currentHammer === 'thunder' && points > 0) points = Math.ceil(points * 1.5);
+        if (currentHammer === 'gold' && points > 0) { points *= 2; earnedCoins *= 2; }
+
+        if (points > 0 && !isFever) {
+            combo++;
+            document.getElementById('statusBanner').innerHTML = `<span class="combo-text">⚡ ${combo} Combo!</span>`;
+            if (combo >= 8) triggerFever();
+        }
+
+        playSound('hit');
+        score += points;
+        levelCoins += earnedCoins;
+
+        document.getElementById('score').textContent = Math.max(0, score);
+
+        const pop = document.createElement('div');
+        pop.className = 'hit-pop';
+        pop.style.color = points > 0 ? '#ffcc00' : '#ff3b30';
+        pop.textContent = popText;
+        hole.appendChild(pop);
+        setTimeout(() => pop.remove(), 350);
+
+        setTimeout(() => hole.classList.remove('up'), 50);
+    }
+
+    function openShop() {
+        document.getElementById('shopOverlay').style.display = 'flex';
+        renderShop();
+    }
+
+    function closeShop() {
+        document.getElementById('shopOverlay').style.display = 'none';
+    }
+
+    function renderShop() {
+        const list = document.getElementById('shopList');
+        list.innerHTML = '';
+
+        for (let key in hammerData) {
+            const item = hammerData[key];
+            const isUnlocked = unlockedHammers.includes(key);
+            const isEquipped = currentHammer === key;
+
+            const div = document.createElement('div');
+            div.className = 'shop-item';
+            div.innerHTML = `
+                <div class="shop-item-info">
+                    <div class="shop-item-title">${item.name}</div>
+                    <div class="shop-item-desc">${item.desc}</div>
+                </div>
+                <button class="btn-buy ${isEquipped ? 'equipped' : ''}" onclick="buyOrEquip('${key}')">
+                    ${isEquipped ? '裝備中' : (isUnlocked ? '裝備' : `🪙 ${item.price}`)}
+                </button>
+            `;
+            list.appendChild(div);
+        }
+    }
+
+    function buyOrEquip(key) {
+        const item = hammerData[key];
+        if (unlockedHammers.includes(key)) {
+            currentHammer = key;
+            localStorage.setItem('mole_hammer', key);
+        } else {
+            if (totalCoins >= item.price) {
+                totalCoins -= item.price;
+                unlockedHammers.push(key);
+                currentHammer = key;
+                localStorage.setItem('mole_total_coins', totalCoins);
+                localStorage.setItem('mole_unlocked_hammers', JSON.stringify(unlockedHammers));
+                localStorage.setItem('mole_hammer', key);
+                document.getElementById('totalCoinsText').textContent = totalCoins;
+            } else {
+                alert('金幣不足喔！多玩幾關賺金幣吧！');
+            }
+        }
+        renderShop();
+    }
+</script>
+
+</body>
+</html>
